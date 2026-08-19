@@ -35,8 +35,18 @@
         <table>
           <tbody id="matchupBody"></tbody>
         </table>
-        <p class="footer-note">최신 경기는 수집 실패 시 마지막 정상 JSON을 유지합니다.</p>
+        <p class="footer-note">최신 경기와 NC 상대전적은 모두 KBO 공식 페이지 기준으로 별도 수집합니다. 실패 시 마지막 정상 JSON을 유지합니다.</p>
       </div>
+    </section>
+
+    <section class="panel">
+      <h2>16명 선수 ID 매핑 검증표</h2>
+      <table>
+        <thead>
+          <tr><th>역할</th><th>선수</th><th>유형</th><th>playerId</th><th>검증</th><th>출처</th></tr>
+        </thead>
+        <tbody id="idMapBody"></tbody>
+      </table>
     </section>
 
     <section class="panel">
@@ -51,5 +61,6 @@
     </section>
   </div>
   <script src="./app.js"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
 </body>
 </html>
