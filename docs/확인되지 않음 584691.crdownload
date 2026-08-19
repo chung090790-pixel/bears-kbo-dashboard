@@ -1,0 +1,80 @@
+function formatNullable(value) {
+  return value ?? 'null (미수집)';
+}
+
+async function loadDashboard() {
+  const res = await fetch('./data/latest.json', { cache: 'no-store' });
+  const data = await res.json();
+
+  const metrics = [
+    ['정규시즌 순위', `${data.summary.rank}위`, data.summary.record],
+    ['승률', `${data.summary.win_pct}`, `게임차 ${data.summary.games_back}`],
+    ['팀 ERA', `${data.summary.team_era}`, `WHIP ${data.summary.team_whip}`],
+    ['팀 AVG', `${data.summary.team_avg}`, `득점 ${data.summary.team_runs} / 안타 ${data.summary.team_hits}`],
+    ['탈삼진', `${data.summary.team_so}`, '공식 팀 투수 기록'],
+    ['마지막 수집', data.meta.collected_at_utc, 'UTC']
+  ];
+
+  document.getElementById('metrics').innerHTML = metrics.map(([label, value, sub]) => `
+    <div class="metric">
+      <div class="label">${label}</div>
+      <div class="value">${value}</div>
+      <div class="sub">${sub}</div>
+    </div>`).join('');
+
+  document.getElementById('rotationBody').innerHTML = data.rotation.map(p => `
+    <tr>
+      <td>${p.name}</td>
+      <td>${formatNullable(p.era)}</td>
+      <td>${formatNullable(p.g)}</td>
+      <td>${p.w == null || p.l == null ? 'null (미수집)' : `${p.w}-${p.l}`}</td>
+      <td>${formatNullable(p.ip)}</td>
+      <td>${formatNullable(p.whip)}</td>
+      <td>${formatNullable(p.so)}</td>
+      <td>${p.source ? `<a href="${p.source}" target="_blank" rel="noreferrer">KBO</a>` : 'null (미수집)'}</td>
+    </tr>`).join('');
+
+  const latestGame = data.matchups.latest_game;
+  const nc = data.matchups.nc_head_to_head;
+  document.getElementById('matchupBody').innerHTML = `
+    <tr><th>NC 상대전적</th><td>${nc ? `${nc.record} (총 ${nc.games_count}경기)` : 'null (미수집)'}</td></tr>
+    <tr><th>NC 전적 출처</th><td>${nc ? `<a href="${nc.source_url}" target="_blank" rel="noreferrer">KBO 영문 스코어보드</a>` : 'null (미수집)'}</td></tr>
+    <tr><th>최신 경기</th><td>${latestGame ? latestGame.summary : 'null (미수집)'}</td></tr>
+    <tr><th>최신 경기 출처</th><td>${latestGame ? `<a href="${latestGame.source_url}" target="_blank" rel="noreferrer">KBO 영문 스코어보드</a>` : 'null (미수집)'}</td></tr>
+    <tr><th>팀 순위 출처</th><td><a href="${data.sources.team_rank}" target="_blank" rel="noreferrer">KBO 팀 순위</a></td></tr>`;
+
+  document.getElementById('idMapBody').innerHTML = (data.id_mapping || []).map(p => `
+    <tr>
+      <td>${p.role}</td>
+      <td>${p.name}</td>
+      <td>${p.type}</td>
+      <td>${formatNullable(p.player_id)}</td>
+      <td>${p.verification_status}${p.verification_note ? ` · ${p.verification_note}` : ''}</td>
+      <td>${p.profile_url ? `<a href="${p.profile_url}" target="_blank" rel="noreferrer">KBO</a>` : 'null (미수집)'}</td>
+    </tr>`).join('');
+
+  const failureText = (data.failures && data.failures.length) ? ` · 실패 항목 ${data.failures.length}개` : '';
+  document.getElementById('meta').textContent = `시즌 ${data.meta.season} · 수집 기준 ${data.meta.collected_at_utc} · ${data.meta.source_note}${failureText}`;
+}
+
+async function refreshNow() {
+  const isStaticHost = location.protocol === 'file:' || location.hostname.endsWith('github.io');
+  if (isStaticHost) {
+    alert('GitHub Pages 정적 배포에서는 사이트 내부 버튼으로 서버 수집을 직접 실행할 수 없습니다.\nGitHub 저장소 > Actions > Daily KBO Refresh and Deploy > Run workflow 를 사용하세요.\n로컬에서 python app.py 실행 시에는 이 버튼이 동작합니다.');
+    return;
+  }
+  try {
+    const res = await fetch('/refresh', { method: 'POST' });
+    const payload = await res.json();
+    if (!res.ok || !payload.ok) throw new Error(payload.error || 'refresh failed');
+    await loadDashboard();
+    alert(`갱신 완료: ${payload.collected_at_utc}`);
+  } catch (err) {
+    alert(`갱신 실패: ${err.message}`);
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', refreshNow);
+loadDashboard().catch(err => {
+  document.getElementById('metrics').innerHTML = `<div class="panel fail">대시보드 로드 실패: ${err.message}</div>`;
+});
