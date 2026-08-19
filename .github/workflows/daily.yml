@@ -1,0 +1,57 @@
+name: Daily KBO Refresh and Deploy
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 23 * * *'  # 08:05 KST daily (GitHub cron uses UTC and may drift or skip)
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh data
+        run: python scripts/refresh.py
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p _site/data
+          cp docs/index.html _site/index.html
+          cp docs/app.js _site/app.js
+          cp docs/styles.css _site/styles.css
+          cp data/latest.json _site/data/latest.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
