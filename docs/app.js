@@ -1,5 +1,6 @@
 async function loadDashboard() {
-  const res = await fetch('../data/latest.json', { cache: 'no-store' });
+  const res = await fetch('./data/latest.json', { cache: 'no-store' });
+
   const data = await res.json();
 
   const metrics = [
