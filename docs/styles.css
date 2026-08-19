@@ -1,0 +1,61 @@
+:root {
+  --bg: #08160e;
+  --panel: #0d2015;
+  --line: #173826;
+  --text: #e8fff1;
+  --muted: #9fbeaa;
+  --accent: #b7ff3c;
+  --accent2: #7dff6a;
+  --danger: #ff6b81;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #12301d 0%, var(--bg) 46%);
+  color: var(--text);
+}
+a { color: var(--accent); }
+.wrap { max-width: 1380px; margin: 0 auto; padding: 24px; }
+header {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+h1 { margin: 0; font-size: 34px; }
+.subtitle, .small { color: var(--muted); }
+.panel {
+  background: rgba(13,32,21,.9);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.metric {
+  background: linear-gradient(180deg, rgba(20,48,31,.95), rgba(10,22,14,.95));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+.metric .label { color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 700; }
+.metric .value { font-size: 30px; font-weight: 800; margin-top: 6px; color: var(--accent); }
+.metric .sub { margin-top: 6px; font-size: 13px; }
+.btn {
+  appearance: none; border: 0; cursor: pointer; font-weight: 800;
+  background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #08160e;
+  padding: 12px 18px; border-radius: 12px;
+}
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: center; }
+th { color: var(--accent); background: #163d25; }
+.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #133221; padding: 2px 6px; border-radius: 6px; }
+.fail { color: var(--danger); }
+.footer-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
