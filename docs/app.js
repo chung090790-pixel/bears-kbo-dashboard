@@ -1,8 +1,15 @@
+// docs/app.js
+// 두산 베어스 대시보드에서 null 값을 '미수집'으로 보여주기 위한 헬퍼 함수입니다.
+function formatNullable(value) {
+  return value ?? 'null (미수집)';
+}
+
+// 대시보드 JSON을 불러와 화면의 카드/테이블을 채웁니다.
 async function loadDashboard() {
   const res = await fetch('./data/latest.json', { cache: 'no-store' });
-
   const data = await res.json();
 
+  // 상단 핵심 지표 카드 데이터
   const metrics = [
     ['정규시즌 순위', `${data.summary.rank}위`, data.summary.record],
     ['승률', `${data.summary.win_pct}`, `게임차 ${data.summary.games_back}`],
@@ -19,32 +26,50 @@ async function loadDashboard() {
       <div class="sub">${sub}</div>
     </div>`).join('');
 
+  // 5인 선발 로테이션 테이블
   document.getElementById('rotationBody').innerHTML = data.rotation.map(p => `
     <tr>
       <td>${p.name}</td>
-      <td>${p.era ?? 'null (미수집)'}</td>
-      <td>${p.g ?? 'null (미수집)'}</td>
+      <td>${formatNullable(p.era)}</td>
+      <td>${formatNullable(p.g)}</td>
       <td>${p.w == null || p.l == null ? 'null (미수집)' : `${p.w}-${p.l}`}</td>
-      <td>${p.ip ?? 'null (미수집)'}</td>
-      <td>${p.whip ?? 'null (미수집)'}</td>
-      <td>${p.so ?? 'null (미수집)'}</td>
+      <td>${formatNullable(p.ip)}</td>
+      <td>${formatNullable(p.whip)}</td>
+      <td>${formatNullable(p.so)}</td>
       <td>${p.source ? `<a href="${p.source}" target="_blank" rel="noreferrer">KBO</a>` : 'null (미수집)'}</td>
     </tr>`).join('');
 
-  const latestGame = data.matchups.latest_game ?? 'null (미수집)';
+  // NC 상대전적 / 최신 경기 섹션
+  const latestGame = data.matchups.latest_game;
+  const nc = data.matchups.nc_head_to_head;
   document.getElementById('matchupBody').innerHTML = `
-    <tr><th>NC 전적</th><td>${data.matchups.nc_record ?? 'null (미수집)'}</td></tr>
-    <tr><th>최신 경기</th><td>${latestGame}</td></tr>
-    <tr><th>팀 순위 출처</th><td><a href="${data.sources.team_rank}" target="_blank" rel="noreferrer">KBO 팀 순위</a></td></tr>
-    <tr><th>타격 출처</th><td><a href="${data.sources.team_hitter}" target="_blank" rel="noreferrer">KBO 팀 타자</a></td></tr>
-    <tr><th>투수 출처</th><td><a href="${data.sources.team_pitcher}" target="_blank" rel="noreferrer">KBO 팀 투수</a></td></tr>`;
+    <tr><th>NC 상대전적</th><td>${nc ? `${nc.record} (총 ${nc.games_count}경기)` : 'null (미수집)'}</td></tr>
+    <tr><th>NC 전적 출처</th><td>${nc ? `<a href="${nc.source_url}" target="_blank" rel="noreferrer">KBO 영문 스코어보드</a>` : 'null (미수집)'}</td></tr>
+    <tr><th>최신 경기</th><td>${latestGame ? latestGame.summary : 'null (미수집)'}</td></tr>
+    <tr><th>최신 경기 출처</th><td>${latestGame ? `<a href="${latestGame.source_url}" target="_blank" rel="noreferrer">KBO 영문 스코어보드</a>` : 'null (미수집)'}</td></tr>
+    <tr><th>팀 순위 출처</th><td><a href="${data.sources.team_rank}" target="_blank" rel="noreferrer">KBO 팀 순위</a></td></tr>`;
 
-  document.getElementById('meta').textContent = `시즌 ${data.meta.season} · 수집 기준 ${data.meta.collected_at_utc} · ${data.meta.source_note}`;
+  // 16명 선수 ID 매핑 검증 테이블
+  document.getElementById('idMapBody').innerHTML = (data.id_mapping || []).map(p => `
+    <tr>
+      <td>${p.role}</td>
+      <td>${p.name}</td>
+      <td>${p.type}</td>
+      <td>${formatNullable(p.player_id)}</td>
+      <td>${p.verification_status}${p.verification_note ? ` · ${p.verification_note}` : ''}</td>
+      <td>${p.profile_url ? `<a href="${p.profile_url}" target="_blank" rel="noreferrer">KBO</a>` : 'null (미수집)'}</td>
+    </tr>`).join('');
+
+  // 하단 메타 정보 및 실패 항목 수
+  const failureText = (data.failures && data.failures.length) ? ` · 실패 항목 ${data.failures.length}개` : '';
+  document.getElementById('meta').textContent = `시즌 ${data.meta.season} · 수집 기준 ${data.meta.collected_at_utc} · ${data.meta.source_note}${failureText}`;
 }
 
+// '즉시 갱신' 버튼 동작: GitHub Pages에서는 안내만, 로컬 Flask 서버에서는 /refresh 호출
 async function refreshNow() {
-  if (location.protocol === 'file:') {
-    alert('정적 파일 단독 실행에서는 갱신 버튼이 동작하지 않습니다. python app.py 실행 후 localhost 로 접속하세요.');
+  const isStaticHost = location.protocol === 'file:' || location.hostname.endsWith('github.io');
+  if (isStaticHost) {
+    alert('GitHub Pages 정적 배포에서는 사이트 내부 버튼으로 서버 수집을 직접 실행할 수 없습니다.\nGitHub 저장소 > Actions > Daily KBO Refresh and Deploy > Run workflow 를 사용하세요.\n로컬에서 python app.py 실행 시에는 이 버튼이 동작합니다.');
     return;
   }
   try {
@@ -58,6 +83,9 @@ async function refreshNow() {
   }
 }
 
+// 버튼 이벤트 연결
+// 페이지 최초 로드 시 대시보드 데이터 로드
+// 로드 실패 시 오류 패널 표시
 document.getElementById('refreshBtn').addEventListener('click', refreshNow);
 loadDashboard().catch(err => {
   document.getElementById('metrics').innerHTML = `<div class="panel fail">대시보드 로드 실패: ${err.message}</div>`;
